@@ -71,49 +71,55 @@ void NeuronNetwork::add_hidden_neuron(NeuronPtr neuroptr) {
  * Force the interconnected neurons to learn in a supervised way by the given input and desired output. Use this overload if the input is already separated from the output.
  * @param input
  * @param desired_output
+ * @param log_stream
  * @param train_ratio
  */
-void NeuronNetwork::train(const vector<vector<double>>& input, const vector<double>& desired_output, double train_ratio) {
+void NeuronNetwork::train(const vector<vector<double>>& input, const vector<double>& desired_output, ostream& log_stream, double train_ratio) {
 
 }
 
 /**
  * Force the interconnected neurons to learn in a supervised way by the given input and desired output. Use this overload if both the input and desired output values are contained in a stream (file, console, etc.). 
  * @param train_stream
+ * @param log_stream
  * @param train_ratio
  */
-void NeuronNetwork::train(istream& train_stream, double train_ratio) {
+void NeuronNetwork::train(istream& train_stream, ostream& log_stream, double train_ratio) {
 
 }
 
 /**
  * Activates the input neurons of the network with the given input and reads the output of the output neurons. Use this overload if the input is already put in a vector and the output is expected in a vector. The output vector is filled with as many elements as the number of output neurons in the network.
  * @param input
+ * @param output
  */
-void NeuronNetwork::test(const vector<double>& input) {
+void NeuronNetwork::test(const vector<double>& input, vector<double>& output) {
 
 }
 
 /**
  * Activates the input neurons of the network with the given input and reads the output of the output neurons. Use this overload if the input is already put in a vector and the output is expected to be written on a stream.
  * @param input
+ * @param output_stream
  */
-void NeuronNetwork::test(const vector<double>& input) {
+void NeuronNetwork::test(const vector<double>& input, ostream& output_stream) {
 
 }
 
 /**
  * Activates the input neurons of the network with the given input and reads the output of the output neurons. Use this overload if the input is on a stream and the output is expected in a vector. The output vector is filled with as many elements as the number of output neurons in the network.
  * @param input_stream
+ * @param output
  */
-void NeuronNetwork::test(istream& input_stream) {
+void NeuronNetwork::test(istream& input_stream, vector<double>& output) {
 
 }
 
 /**
  * Activates the input neurons of the network with the given input and reads the output of the output neurons. Use this overload if the input is on a stream and the output is expected to be written on a stream as well.
  * @param input_stream
+ * @param output_stream
  */
-void NeuronNetwork::test(istream& input_stream) {
+void NeuronNetwork::test(istream& input_stream, ostream& output_stream) {
 
 }
