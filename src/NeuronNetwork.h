@@ -7,6 +7,10 @@
 
 #include <vector>
 #include <iostream>
+#include <set>
+#include <limits>
+#include <algorithm>
+#include <iterator>
 #include "Neuron.h"
 #include "OutputNeuron.h"
 #include "InputNeuron.h"
@@ -14,12 +18,13 @@
 using std::vector;
 using std::istream;
 using std::ostream;
+using std::set;
 
 namespace NNlight {
 
 class NeuronNetwork {
 public: 
-    
+
     /**
      * Creates a network of neurons, initially without the neurons. Neurons can be added after creation.
      */
@@ -68,7 +73,7 @@ public:
      * @param log_stream
      * @param train_ratio
      */
-    void train(const vector<vector<double>>& input, const vector<double>& desired_output, ostream& log_stream, double train_ratio);
+    void train(const vector<vector<double>>& input, const vector<vector<double>>& desired_output, ostream& log_stream, double train_ratio);
     
     /**
      * Force the interconnected neurons to learn in a supervised way by the given input and desired output. Use this overload if both the input and desired output values are contained in a stream (file, console, etc.). 
@@ -110,18 +115,22 @@ private:
      * Default value of the ratio of training samples to all the samples. 1-<this> means the test ratio.
      */
     static double def_train_test_ratio;
+	/**
+	 * Epsilon value: if the accuracy change is between this value and 0, than no more learning iteration is conducted.
+	 */
+	static double acc_eps;
     /**
      * All neurons in network.
      */
-    vector<Neuron> neurons;
+    set<NeuronPtr> neurons;
     /**
      * Output neurons in network.
      */
-    vector<OutputNeuron> outputs;
+    set<OutputNeuronPtr> outputs;
     /**
      * Input neurons in network.
      */
-    vector<InputNeuron> inputs;
+    set<InputNeuronPtr> inputs;
 };
 
 }

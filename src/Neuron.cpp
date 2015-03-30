@@ -19,8 +19,8 @@ double Neuron::def_regularization = 0.2;
  * Creates a neuron instance with the given learning rate.
  * @param learning_rate_
  */
-Neuron::Neuron(double learning_rate_)
-	: learning_rate(learning_rate_), activation(0.0)
+Neuron::Neuron(double learning_rate_, double regularization_)
+	: learning_rate(learning_rate_), regularization(regularization_), activation(0.0)
 {
 	// rand biasweight
 	std::uniform_real_distribution<double> distr(0.0, 2.0);
@@ -83,7 +83,8 @@ void Neuron::backpropagate(NeuronPtr from, double err)
 		});
 		delta *= activation * (1.0 - activation); // multiplied by sigmoid derivate of activation
 
-		// adjust input weights
+		// adjust bias & input weights
+		biasweight -= learning_rate * delta; 
 		for (auto& in : input_weights)
 		{
 			auto grad = in.first->activation * delta + regularization * in.second;
@@ -105,7 +106,18 @@ void Neuron::backpropagate(NeuronPtr from, double err)
  */
 void Neuron::connect_input(Neuron& neuro)
 {
+	NeuronPtr this_ptr(this);
+	auto neuro_ptr = std::make_shared<Neuron>(neuro);
+	if (input_weights.find(neuro_ptr) != input_weights.end())
+		throw std::exception("Neuron is already connected as input!");
+	if (neuro.outputs.find(this_ptr) != neuro.outputs.end())
+		throw std::exception("Neuron is already connected as output!");
 
+	// rand weight
+	std::uniform_real_distribution<double> distr(0.0, 2.0);
+	std::random_device rand_dev;
+	input_weights.insert(std::make_pair(neuro_ptr, distr(rand_dev)));
+	neuro.outputs.insert(this_ptr);
 }
 
 }

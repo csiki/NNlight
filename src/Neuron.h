@@ -5,14 +5,14 @@
 #ifndef _NEURON_H
 #define _NEURON_H
 
-#include <set>
+#include <unordered_set>
 #include <unordered_map>
 #include <memory>
 #include <random>
 #include <iostream>
 #include <numeric>
 
-using std::set;
+using std::unordered_set;
 using std::unordered_map;
 using std::shared_ptr;
 
@@ -23,12 +23,13 @@ typedef shared_ptr<Neuron> NeuronPtr;
 
 class Neuron {
 public:
+	friend class OutputNeuron;
     
     /**
      * Creates a neuron instance with the given learning rate.
      * @param learning_rate_
      */
-    Neuron(double learning_rate_ = def_learning_rate);
+	Neuron(double learning_rate_ = def_learning_rate, double regularization_ = def_regularization);
     
     /**
      * Induces input, activating the neuron.
@@ -76,7 +77,7 @@ protected:
     /**
      * Set of output neurons.
      */
-    set<NeuronPtr> outputs;
+    unordered_set<NeuronPtr> outputs;
     /**
      * Error (or delta) value is mapped to each output neuron.
      */

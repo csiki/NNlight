@@ -7,7 +7,6 @@ using namespace std;
 using namespace NNlight;
 
 // TODO add parameter documentation
-// TODO add regularization Neuron, InputNeuron, OutputNeuron constructor param
 
 int main(int argc, char* argv[])
 {

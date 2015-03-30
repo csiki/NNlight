@@ -12,13 +12,13 @@
 
 namespace NNlight {
 
+double NeuronNetwork::def_train_test_ratio = 0.8;
+double NeuronNetwork::acc_eps = 1e-4;
+
 /**
  * Creates a network of neurons, initially without the neurons. Neurons can be added after creation.
  */
-NeuronNetwork::NeuronNetwork()
-{
-
-}
+NeuronNetwork::NeuronNetwork() {}
 
 /**
  * Adds an input neuron to the network. The more input neurons are added, the more input values are needed for training and testing. The number of input neurons determines the dimension of the input data.
@@ -26,7 +26,11 @@ NeuronNetwork::NeuronNetwork()
  */
 void NeuronNetwork::add_input_neuron(InputNeuron& neuro)
 {
+	auto ins = neurons.insert(std::make_shared<InputNeuron>(neuro));
+	if (!ins.second)
+		throw std::exception("Input neuron is already added!");
 
+	inputs.insert(std::make_shared<InputNeuron>(neuro));
 }
 
 /**
@@ -35,7 +39,11 @@ void NeuronNetwork::add_input_neuron(InputNeuron& neuro)
  */
 void NeuronNetwork::add_output_neuron(OutputNeuron& neuro)
 {
+	auto ins = neurons.insert(std::make_shared<OutputNeuron>(neuro));
+	if (!ins.second)
+		throw std::exception("Output neuron is already added!");
 
+	outputs.insert(std::make_shared<OutputNeuron>(neuro));
 }
 
 /**
@@ -44,7 +52,9 @@ void NeuronNetwork::add_output_neuron(OutputNeuron& neuro)
  */
 void NeuronNetwork::add_hidden_neuron(Neuron& neuro)
 {
-
+	auto ins = neurons.insert(std::make_shared<Neuron>(neuro));
+	if (!ins.second)
+		throw std::exception("Hidden neuron is already added!");
 }
 
 /**
@@ -53,7 +63,11 @@ void NeuronNetwork::add_hidden_neuron(Neuron& neuro)
  */
 void NeuronNetwork::add_input_neuron(InputNeuronPtr neuroptr)
 {
+	auto ins = neurons.insert(neuroptr);
+	if (!ins.second)
+		throw std::exception("Input neuron is already added!");
 
+	inputs.insert(neuroptr);
 }
 
 /**
@@ -62,7 +76,11 @@ void NeuronNetwork::add_input_neuron(InputNeuronPtr neuroptr)
  */
 void NeuronNetwork::add_output_neuron(OutputNeuronPtr neuroptr)
 {
-
+	auto ins = neurons.insert(neuroptr);
+	if (!ins.second)
+		throw std::exception("Output neuron is already added!");
+	
+	outputs.insert(neuroptr);
 }
 
 /**
@@ -71,7 +89,9 @@ void NeuronNetwork::add_output_neuron(OutputNeuronPtr neuroptr)
  */
 void NeuronNetwork::add_hidden_neuron(NeuronPtr neuroptr)
 {
-
+	auto ins = neurons.insert(neuroptr);
+	if (!ins.second)
+		throw std::exception("Hidden neuron is already added!");
 }
 
 /**
@@ -81,9 +101,59 @@ void NeuronNetwork::add_hidden_neuron(NeuronPtr neuroptr)
  * @param log_stream
  * @param train_ratio
  */
-void NeuronNetwork::train(const vector<vector<double>>& input, const vector<double>& desired_output, ostream& log_stream, double train_ratio)
+void NeuronNetwork::train(const vector<vector<double>>& input, const vector<vector<double>>& desired_output, ostream& log_stream, double train_ratio)
 {
+	double delta_acc = std::numeric_limits<double>::max(); // accuracy change iteration by iteration
+	// create and fill shuffle indices, so input and desired output can be shuffled at the same time
+	vector<size_t> shuffle_indices(input.size());
+	std::iota(shuffle_indices.begin(), shuffle_indices.end(), 0);
+	// separate train and test, input and desired output vectors
+	auto train_in_beg = input.begin();
+	auto train_in_end = input.begin() + static_cast<size_t>(input.size() * train_ratio);
+	auto train_dout_beg = desired_output.begin();
+	auto train_dout_end = desired_output.begin() + static_cast<size_t>(desired_output.size() * train_ratio);
+	auto test_in_beg = input.begin() + static_cast<size_t>(input.size() * train_ratio);
+	auto test_in_end = input.end();
+	auto test_dout_beg = desired_output.begin() + static_cast<size_t>(desired_output.size() * train_ratio);
+	auto test_dout_end = desired_output.end();
+	// create performance vectors to be able to average over errors of a training set
+	vector<double> train_perf(input.size() * train_ratio);
+	vector<double> test_perf(input.size() - input.size() * train_ratio);
 
+	while (!(std::abs(delta_acc) < acc_eps)) // while the change is significant
+	{
+		// shuffle train inputs & desired outputs
+		// TODO
+
+		// iterate over all samples
+		for (size_t sample_index = 0; sample_index < input.size() * train_ratio; ++sample_index) // TODO iterátorokra cseréld
+		{
+			// forward propagation
+			size_t neur_index = 0;
+			for (auto& in : inputs) in->feed(input[sample_index][neur_index++]);
+			
+			// backward propagation
+			vector<double> err;
+			err.reserve(outputs.size());
+			std::transform(outputs.begin(), outputs.end(), desired_output[sample_index].begin(), std::back_inserter(err),
+				[] (const OutputNeuronPtr& neur, const double& d_out) {
+					return std::pow(neur->get_activation() - d_out, 2.0); // MSE
+			});
+			neur_index = 0;
+			for (auto& out : outputs) out->backpropagate(nullptr, err[neur_index++]);
+
+			// update training performance by averaging over errors
+			train_perf[sample_index] = std::accumulate(err.begin(), err.end(), 0.0);
+			train_perf[sample_index] /= err.size();
+
+		}
+		
+		// check test performance
+		for (size_t sample_index = input.size() * train_ratio; sample_index < input.size(); ++sample_index) // TODO iterátorokra cseréld
+		{
+			// TODO
+		}
+	}
 }
 
 /**
