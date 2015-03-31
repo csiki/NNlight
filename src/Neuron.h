@@ -9,7 +9,6 @@
 #include <unordered_map>
 #include <memory>
 #include <random>
-#include <iostream>
 #include <numeric>
 
 using std::unordered_set;
@@ -25,11 +24,24 @@ class Neuron {
 public:
 	friend class OutputNeuron;
     
+	/**
+	 * Connects two given neurons: from --> to.
+	 * @param from
+	 * @param to
+	 */
+	template <typename FromPtr, typename ToPtr>
+	static void connect(FromPtr from, ToPtr to)
+	{
+		from->connect_output(std::dynamic_pointer_cast<Neuron>(to));
+		to->connect_input(std::dynamic_pointer_cast<Neuron>(from));
+	}
+
     /**
      * Creates a neuron instance with the given learning rate.
      * @param learning_rate_
      */
 	Neuron(double learning_rate_ = def_learning_rate, double regularization_ = def_regularization);
+	virtual ~Neuron();
     
     /**
      * Induces input, activating the neuron.
@@ -44,12 +56,6 @@ public:
      * @param err
      */
     virtual void backpropagate(NeuronPtr from, double err);
-    
-    /**
-     * Connects the given 'neuro' neuron as an input of this neuron. Also this neuron is added as an output neuron of the given neuron.
-     * @param neuro
-     */
-    virtual void connect_input(Neuron& neuro);
 
 	/**
      * Default learning rate.
@@ -94,7 +100,42 @@ protected:
      * Regularization term. Force weights to stay lower, serve generalization.
      */
     double regularization;
+
+private:
+	/**
+     * Connects the given 'neuro' neuron as an input of this neuron.
+     * @param neuro
+     */
+    virtual void connect_input(NeuronPtr& neuro);
+
+	/**
+     * Connects the given 'neuro' neuron as an output of this neuron.
+     * @param neuro
+     */
+	void Neuron::connect_output(NeuronPtr& neuro);
 };
+
+/**
+ * Creates a neuron and a (shared) pointer to it, so it can be connected to other neurons.
+ */
+template <typename NeuronType>
+std::shared_ptr<NeuronType> make_neuron(double learning_rate_ = Neuron::def_learning_rate, double regularization_ = Neuron::def_regularization)
+{
+	return std::make_shared<NeuronType>(learning_rate_, regularization_);
+}
+
+/**
+ * Creates a (shared) pointer to neuron, so it can be connected to other neurons.
+ * Beware, could be dangerous if neuron is deallocated before all pointers to it are destroyed! Do not mix with other make_neuron; only use this if necessary!
+ */
+/*template <typename NeuronType>
+std::shared_ptr<NeuronType> make_neuron(NeuronType& neuron)
+{
+	static unordered_map<NeuronType*, shared_ptr<NeuronType>> bare_ptr_shared_ptr_map;
+	auto ins = bare_ptr_shared_ptr_map.insert(std::make_pair(&neuron, shared_ptr<NeuronType>(&neuron)));
+
+	return (ins.first)->second;
+}*/
 
 }
 

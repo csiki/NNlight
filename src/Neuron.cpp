@@ -26,8 +26,8 @@ Neuron::Neuron(double learning_rate_, double regularization_)
 	std::uniform_real_distribution<double> distr(0.0, 2.0);
 	std::random_device rand_dev;
 	biasweight = distr(rand_dev);
-	std::cout << biasweight;
 }
+Neuron::~Neuron() {}
 
 /**
  * Induces input, activating the neuron.
@@ -84,7 +84,7 @@ void Neuron::backpropagate(NeuronPtr from, double err)
 		delta *= activation * (1.0 - activation); // multiplied by sigmoid derivate of activation
 
 		// adjust bias & input weights
-		biasweight -= learning_rate * delta; 
+		biasweight -= learning_rate * delta;
 		for (auto& in : input_weights)
 		{
 			auto grad = in.first->activation * delta + regularization * in.second;
@@ -101,23 +101,29 @@ void Neuron::backpropagate(NeuronPtr from, double err)
 }
 
 /**
- * Connects the given 'neuro' neuron as an input of this neuron. Also this neuron is added as an output neuron of the given neuron.
+ * Connects the given 'neuro' neuron as an input of this neuron.
  * @param neuro
  */
-void Neuron::connect_input(Neuron& neuro)
+void Neuron::connect_input(NeuronPtr& neuro)
 {
-	NeuronPtr this_ptr(this);
-	auto neuro_ptr = std::make_shared<Neuron>(neuro);
-	if (input_weights.find(neuro_ptr) != input_weights.end())
+	if (input_weights.find(neuro) != input_weights.end())
 		throw std::exception("Neuron is already connected as input!");
-	if (neuro.outputs.find(this_ptr) != neuro.outputs.end())
-		throw std::exception("Neuron is already connected as output!");
 
-	// rand weight
 	std::uniform_real_distribution<double> distr(0.0, 2.0);
 	std::random_device rand_dev;
-	input_weights.insert(std::make_pair(neuro_ptr, distr(rand_dev)));
-	neuro.outputs.insert(this_ptr);
+	input_weights.insert(std::make_pair(neuro, distr(rand_dev)));
+}
+
+/**
+ * Connects the given 'neuro' neuron as an output of this neuron.
+ * @param neuro
+ */
+void Neuron::connect_output(NeuronPtr& neuro)
+{
+	if (outputs.find(neuro) != outputs.end())
+		throw std::exception("Neuron is already connected as output!");
+
+	outputs.insert(neuro);
 }
 
 }
