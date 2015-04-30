@@ -29,7 +29,7 @@ void InputNeuron::feed(double input)
 {
 	activation = input;
 	for (auto& out : outputs)
-		out->propagate(NeuronPtr(this), activation);
+		out->propagate(shared_from_this(), activation);
 }
 
 /**

@@ -77,7 +77,7 @@ public:
      * @param log_stream
      * @param train_ratio
      */
-    void train(vector<vector<double>> input, vector<vector<double>> desired_output, ostream& log_stream, double train_ratio);
+    void train(vector<vector<double>> input, vector<vector<double>> desired_output, ostream& log_stream, double train_ratio, size_t max_nepoch = def_max_epoch);
     
     /**
      * Force the interconnected neurons to learn in a supervised way by the given input and desired output. Use this overload if both the input and desired output values are contained in a stream (file, console, etc.). 
@@ -85,7 +85,7 @@ public:
      * @param log_stream
      * @param train_ratio
      */
-    void train(istream& train_stream, ostream& log_stream, double train_ratio);
+    void train(istream& train_stream, ostream& log_stream, double train_ratio, size_t max_nepoch = def_max_epoch);
     
     /**
      * Activates the input neurons of the network with the given input and reads the output of the output neurons. Use this overload if the input is already put in a vector and the output is expected in a vector. The output vector is filled with as many elements as the number of output neurons in the network.
@@ -119,6 +119,10 @@ private:
      * Default value of the ratio of training samples to all the samples. 1-<this> means the test ratio.
      */
     static double def_train_test_ratio;
+	/**
+     * Default value of the maximum number of epochs permited for a training.
+     */
+    static size_t def_max_epoch;
 	/**
 	 * Epsilon value: if the error change is between this value and 0, than no more learning iteration is conducted.
 	 */

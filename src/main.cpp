@@ -8,6 +8,7 @@ using namespace std;
 using namespace NNlight;
 
 // TODO add parameter documentation
+// TODO Neuron::connect_layers
 
 int main(int argc, char* argv[])
 {
@@ -37,6 +38,12 @@ int main(int argc, char* argv[])
 	// train network
 	ifstream xor_file("xor.dat");
 	network.train(xor_file, cout, 1);
+
+	while (!cin.eof())
+	{
+		network.test(cin, cout);
+		cout << endl;
+	}
 
 	return 0;
 }

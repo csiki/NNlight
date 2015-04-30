@@ -20,7 +20,7 @@ namespace NNlight {
 class Neuron;
 typedef shared_ptr<Neuron> NeuronPtr;
 
-class Neuron {
+class Neuron : public std::enable_shared_from_this<Neuron> {
 public:
 	friend class OutputNeuron;
     
@@ -123,19 +123,6 @@ std::shared_ptr<NeuronType> make_neuron(double learning_rate_ = Neuron::def_lear
 {
 	return std::make_shared<NeuronType>(learning_rate_, regularization_);
 }
-
-/**
- * Creates a (shared) pointer to neuron, so it can be connected to other neurons.
- * Beware, could be dangerous if neuron is deallocated before all pointers to it are destroyed! Do not mix with other make_neuron; only use this if necessary!
- */
-/*template <typename NeuronType>
-std::shared_ptr<NeuronType> make_neuron(NeuronType& neuron)
-{
-	static unordered_map<NeuronType*, shared_ptr<NeuronType>> bare_ptr_shared_ptr_map;
-	auto ins = bare_ptr_shared_ptr_map.insert(std::make_pair(&neuron, shared_ptr<NeuronType>(&neuron)));
-
-	return (ins.first)->second;
-}*/
 
 }
 

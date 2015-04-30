@@ -13,7 +13,8 @@
 namespace NNlight {
 
 double NeuronNetwork::def_train_test_ratio = 0.8;
-double NeuronNetwork::err_eps = 1e-4;
+size_t NeuronNetwork::def_max_epoch = 10000;
+double NeuronNetwork::err_eps = 1e-8;
 size_t NeuronNetwork::test_err_increase_threshold = 10;
 
 /**
@@ -102,7 +103,7 @@ void NeuronNetwork::add_neuron(NeuronPtr neuroptr)
  * @param log_stream
  * @param train_ratio
  */
-void NeuronNetwork::train(vector<vector<double>> input, vector<vector<double>> desired_output, ostream& log_stream, double train_ratio)
+void NeuronNetwork::train(vector<vector<double>> input, vector<vector<double>> desired_output, ostream& log_stream, double train_ratio, size_t max_nepoch)
 {
 	double prev_train_err = std::numeric_limits<double>::max(); // averaged training error
 	double prev_test_err = std::numeric_limits<double>::max(); // averaged test error
@@ -122,24 +123,30 @@ void NeuronNetwork::train(vector<vector<double>> input, vector<vector<double>> d
 	auto test_dout_beg = train_dout_end;
 	auto test_dout_end = desired_output.end();
 	// create performance vectors to be able to average over errors of a training set
-	vector<double> err(outputs.size());
 	vector<double> train_perf(static_cast<size_t>(input.size() * train_ratio));
 	vector<double> test_perf(static_cast<size_t>(input.size() - input.size() * train_ratio));
 	// random stuff for shuffling
 	std::random_device rand_dev;
 	std::mt19937 gen(rand_dev());
 
+	if (std::distance(train_in_beg, train_in_end) == 0)
+		throw std::exception("Cannot train network, no training data provided - either train_ratio is too close to zero or the input is empty!");
+
+	size_t epoch = 0;
 	log_stream << "Training initiated ..." << std::endl;
-	while (std::abs(delta_train_err) > err_eps // while the change is significant
-		&& !std::all_of(test_err_is_increasing.begin(), test_err_is_increasing.end(), [] (bool inc) { return inc; } )) // not increasing previously
+	while (epoch < max_nepoch // has not reach max_nepoch
+		&& std::abs(delta_train_err) > err_eps // change is significant
+		&& !std::all_of(test_err_is_increasing.begin(), test_err_is_increasing.end(), [] (bool inc) { return inc; } )) // no previous consecutive test error increase
 	{
 		// shuffle train inputs & desired outputs
 		std::shuffle(shuffle_indices.begin(), shuffle_indices.end(), gen);
-		reorder(shuffle_indices.begin(), shuffle_indices.end(), input.begin());
-		reorder(shuffle_indices.begin(), shuffle_indices.end(), desired_output.begin());
+		reorder(shuffle_indices.begin(), shuffle_indices.end(), train_in_beg);
+		reorder(shuffle_indices.begin(), shuffle_indices.end(), train_dout_beg);
 
-		size_t sample_index = 0;
 		// check performance on test data
+		size_t sample_index = 0;
+		vector<double> err(outputs.size());
+		vector<double> mse_err(outputs.size());
 		if (std::distance(test_in_beg, test_in_end))
 		{
 			for (auto iit = test_in_beg, oit = test_dout_beg;
@@ -150,15 +157,13 @@ void NeuronNetwork::train(vector<vector<double>> input, vector<vector<double>> d
 				size_t neur_index = 0;
 				for (auto& in : inputs) in->feed((*iit)[neur_index++]);
 			
-				// backward propagation
-				std::transform(outputs.begin(), outputs.end(), oit->begin(), err.begin(),
+				// update test performance by averaging over errors
+				std::transform(outputs.begin(), outputs.end(), oit->begin(), mse_err.begin(),
 					[] (const OutputNeuronPtr& neur, const double& d_out) {
 						return std::pow(neur->get_activation() - d_out, 2.0); // MSE
 				});
-
-				// update test performance by averaging over errors
-				test_perf[sample_index] = std::accumulate(err.begin(), err.end(), 0.0);
-				test_perf[sample_index] /= err.size();
+				test_perf[sample_index] = std::accumulate(mse_err.begin(), mse_err.end(), 0.0);
+				test_perf[sample_index] /= mse_err.size();
 				++sample_index;
 			}
 			double avg_test_err = std::accumulate(test_perf.begin(), test_perf.end(), 0.0);
@@ -178,19 +183,24 @@ void NeuronNetwork::train(vector<vector<double>> input, vector<vector<double>> d
 		{
 			// forward propagation
 			size_t neur_index = 0;
-			for (auto in : inputs) in->feed((*iit)[neur_index++]); // TODO para
+			for (auto& in : inputs) in->feed((*iit)[neur_index++]);
 			
 			// backward propagation
 			std::transform(outputs.begin(), outputs.end(), oit->begin(), err.begin(),
 				[] (const OutputNeuronPtr& neur, const double& d_out) {
-					return std::pow(neur->get_activation() - d_out, 2.0); // MSE
+					return d_out - neur->get_activation();
+					//return neur->get_activation() * (1 - neur->get_activation()) * (neur->get_activation() - d_out);
 			});
 			neur_index = 0;
 			for (auto& out : outputs) out->backpropagate(nullptr, err[neur_index++]);
 
 			// update training performance by averaging over errors
-			train_perf[sample_index] = std::accumulate(err.begin(), err.end(), 0.0);
-			train_perf[sample_index] /= err.size();
+			std::transform(outputs.begin(), outputs.end(), oit->begin(), mse_err.begin(),
+				[] (const OutputNeuronPtr& neur, const double& d_out) {
+					return std::pow(neur->get_activation() - d_out, 2.0); // MSE
+			});
+			train_perf[sample_index] = std::accumulate(mse_err.begin(), mse_err.end(), 0.0);
+			train_perf[sample_index] /= mse_err.size();
 			++sample_index;
 		}
 		double avg_train_err = std::accumulate(train_perf.begin(), train_perf.end(), 0.0);
@@ -201,8 +211,13 @@ void NeuronNetwork::train(vector<vector<double>> input, vector<vector<double>> d
 		// log
 		log_stream << "Train error: " << prev_train_err << std::endl;
 		log_stream << "Train error delta: " << delta_train_err << std::endl;
-		log_stream << "Test error: " << prev_test_err << std::endl;
-		log_stream << "Test error delta: " << delta_test_err << std::endl;
+		if (test_in_beg != test_in_end)
+		{
+			log_stream << "Test error: " << prev_test_err << std::endl;
+			log_stream << "Test error delta: " << delta_test_err << std::endl;
+		}
+		log_stream << std::endl;
+		++epoch;
 	}
 }
 
@@ -212,7 +227,7 @@ void NeuronNetwork::train(vector<vector<double>> input, vector<vector<double>> d
  * @param log_stream
  * @param train_ratio
  */
-void NeuronNetwork::train(istream& train_stream, ostream& log_stream, double train_ratio)
+void NeuronNetwork::train(istream& train_stream, ostream& log_stream, double train_ratio, size_t max_nepoch)
 {
 	vector<vector<double>> input;
 	vector<vector<double>> desired_output;

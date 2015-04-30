@@ -12,8 +12,8 @@
 
 namespace NNlight {
 
-double Neuron::def_learning_rate = 0.2;
-double Neuron::def_regularization = 0.2;
+double Neuron::def_learning_rate = 0.1;
+double Neuron::def_regularization = 0.1;
 
 /**
  * Creates a neuron instance with the given learning rate.
@@ -23,7 +23,7 @@ Neuron::Neuron(double learning_rate_, double regularization_)
 	: learning_rate(learning_rate_), regularization(regularization_), activation(0.0)
 {
 	// rand biasweight
-	std::uniform_real_distribution<double> distr(0.0, 2.0);
+	std::uniform_real_distribution<double> distr(-.5, .5);
 	std::random_device rand_dev;
 	biasweight = distr(rand_dev);
 }
@@ -46,18 +46,18 @@ void Neuron::propagate(NeuronPtr from, double act)
 	{
 		// calculate activation
 		auto& tmp_weights = input_weights;
-		activation = std::accumulate(inputs.begin(), inputs.end(), 0.0,
+		activation = std::accumulate(inputs.begin(), inputs.end(), biasweight,
 			[&tmp_weights] (double acc, const std::pair<NeuronPtr, double>& in) {
 				return acc + tmp_weights[in.first] * in.second;
 		});
-		activation = 1.0 / (1 + std::exp(-activation)); // sigmoid nonlinear function
+		activation = 1.0 / (1.0 + std::exp(-activation)); // sigmoid nonlinear function
 
 		// remove all inputs
 		inputs.clear();
 
 		// propage activation further
 		for (auto& out : outputs)
-			out->propagate(NeuronPtr(this), activation);
+			out->propagate(shared_from_this(), activation);
 	}
 }
 
@@ -78,17 +78,17 @@ void Neuron::backpropagate(NeuronPtr from, double err)
 	{
 		// calculate delta value
 		double delta = std::accumulate(errors.begin(), errors.end(), 0.0,
-			[] (double acc, const std::pair<NeuronPtr, double>& out) {
-				return acc + out.second; // already multiplied by output weight
+			[] (double acc, const std::pair<NeuronPtr, double>& err) {
+				return acc + err.second; // already multiplied by output weight
 		});
-		delta *= activation * (1.0 - activation); // multiplied by sigmoid derivate of activation
+		//delta *= activation * (1.0 - activation); // =gradient; multiplied by sigmoid derivate of activation
 
 		// adjust bias & input weights
-		biasweight -= learning_rate * delta;
+		biasweight += learning_rate * delta;
 		for (auto& in : input_weights)
 		{
-			auto grad = in.first->activation * delta + regularization * in.second;
-			in.second -= learning_rate * grad;
+			auto grad = in.first->activation * delta * activation * (1.0 - activation) + regularization * in.second;
+			in.second += learning_rate * grad;
 		}
 
 		// remove all errors
@@ -96,7 +96,7 @@ void Neuron::backpropagate(NeuronPtr from, double err)
 
 		// bacpropage error further
 		for (auto& in : input_weights)
-			in.first->backpropagate(NeuronPtr(this), delta * in.second); // multiplied by input weight
+			in.first->backpropagate(shared_from_this(), delta * in.second); // multiplied by input weight
 	}
 }
 

@@ -4,6 +4,7 @@
 
 
 #include "OutputNeuron.h"
+#include <iostream> // TODO rm
 
 /**
  * OutputNeuron implementation
@@ -38,16 +39,17 @@ double OutputNeuron::get_activation()
 void OutputNeuron::backpropagate(NeuronPtr from, double delta)
 {
 	// adjust bias & input weights
-	biasweight -= learning_rate * delta; 
+	biasweight += learning_rate * delta;
 	for (auto& in : input_weights)
 	{
-		auto grad = in.first->activation * delta + regularization * in.second;
-		in.second -= learning_rate * grad;
+		//auto grad = in.first->activation * delta + regularization * in.second;
+		auto grad = in.first->activation * delta * activation * (1 - activation) + regularization * in.second;
+		in.second += learning_rate * grad;
 	}
 
 	// bacpropage error further
 	for (auto& in : input_weights)
-		in.first->backpropagate(NeuronPtr(this), delta * in.second); // multiplied by input weight
+		in.first->backpropagate(shared_from_this(), delta * in.second); // multiplied by input weight
 }
 
 }
