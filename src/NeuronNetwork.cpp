@@ -105,11 +105,11 @@ void NeuronNetwork::add_neuron(NeuronPtr neuroptr)
  */
 void NeuronNetwork::train(vector<vector<double>> input, vector<vector<double>> desired_output, ostream& log_stream, double train_ratio, size_t max_nepoch)
 {
+	deque<bool> test_err_is_increasing;
 	double prev_train_err = std::numeric_limits<double>::max(); // averaged training error
 	double prev_test_err = std::numeric_limits<double>::max(); // averaged test error
 	double delta_train_err = std::numeric_limits<double>::max(); // accuracy change iteration by iteration
 	double delta_test_err = std::numeric_limits<double>::max();
-	deque<bool> test_err_is_increasing(test_err_increase_threshold, false);
 	// create and fill shuffle indices, so input and desired output can be shuffled at the same time
 	vector<size_t> shuffle_indices(static_cast<size_t>(input.size() * train_ratio));
 	std::iota(shuffle_indices.begin(), shuffle_indices.end(), 0);
@@ -131,93 +131,105 @@ void NeuronNetwork::train(vector<vector<double>> input, vector<vector<double>> d
 
 	if (std::distance(train_in_beg, train_in_end) == 0)
 		throw std::exception("Cannot train network, no training data provided - either train_ratio is too close to zero or the input is empty!");
-
-	size_t epoch = 0;
+	
 	log_stream << "Training initiated ..." << std::endl;
-	while (epoch < max_nepoch // has not reach max_nepoch
-		&& std::abs(delta_train_err) > err_eps // change is significant
-		&& !std::all_of(test_err_is_increasing.begin(), test_err_is_increasing.end(), [] (bool inc) { return inc; } )) // no previous consecutive test error increase
+	size_t nrestart = 0;
+	while (nrestart == 0 || (settings.restart_if_high_error && settings.restart_threshold < prev_train_err && nrestart < settings.max_nrestart))
 	{
-		// shuffle train inputs & desired outputs
-		std::shuffle(shuffle_indices.begin(), shuffle_indices.end(), gen);
-		reorder(shuffle_indices.begin(), shuffle_indices.end(), train_in_beg);
-		reorder(shuffle_indices.begin(), shuffle_indices.end(), train_dout_beg);
-
-		// check performance on test data
-		size_t sample_index = 0;
-		vector<double> err(outputs.size());
-		vector<double> mse_err(outputs.size());
-		if (std::distance(test_in_beg, test_in_end))
+		log_stream << "Training session #" << nrestart << std::endl;
+		prev_train_err = prev_test_err = delta_train_err = delta_test_err = std::numeric_limits<double>::max();
+		test_err_is_increasing.assign(test_err_increase_threshold, false);
+		reset_weights();
+		size_t epoch = 0;
+		while (epoch < max_nepoch // has not reach max_nepoch
+			&& std::abs(delta_train_err) > err_eps // change is significant
+			&& !std::all_of(test_err_is_increasing.begin(), test_err_is_increasing.end(), [] (bool inc) { return inc; } )) // no previous consecutive test error increase
 		{
-			for (auto iit = test_in_beg, oit = test_dout_beg;
-				iit != test_in_end && oit != test_dout_end;
+			// shuffle train inputs & desired outputs
+			std::shuffle(shuffle_indices.begin(), shuffle_indices.end(), gen);
+			reorder(shuffle_indices.begin(), shuffle_indices.end(), train_in_beg);
+			reorder(shuffle_indices.begin(), shuffle_indices.end(), train_dout_beg);
+
+			// check performance on test data
+			size_t sample_index = 0;
+			vector<double> err(outputs.size());
+			vector<double> mse_err(outputs.size());
+			if (std::distance(test_in_beg, test_in_end))
+			{
+				for (auto iit = test_in_beg, oit = test_dout_beg;
+					iit != test_in_end && oit != test_dout_end;
+					++iit, ++oit)
+				{
+					// forward propagation
+					size_t neur_index = 0;
+					for (auto& in : inputs) in->feed((*iit)[neur_index++]);
+			
+					// update test performance by averaging over errors
+					std::transform(outputs.begin(), outputs.end(), oit->begin(), mse_err.begin(),
+						[] (const OutputNeuronPtr& neur, const double& d_out) {
+							return std::pow(neur->get_activation() - d_out, 2.0); // MSE
+					});
+					test_perf[sample_index] = std::accumulate(mse_err.begin(), mse_err.end(), 0.0);
+					test_perf[sample_index] /= mse_err.size();
+					++sample_index;
+				}
+				double avg_test_err = std::accumulate(test_perf.begin(), test_perf.end(), 0.0);
+				avg_test_err /= test_perf.size();
+				test_err_is_increasing.push_back( avg_test_err > prev_test_err );
+				if (test_err_is_increasing.size() > test_err_increase_threshold)
+					test_err_is_increasing.pop_front();
+				delta_test_err = prev_test_err - avg_test_err;
+				prev_test_err = avg_test_err;
+			}
+		
+			// iterate over all train samples, forward- & backpropagation
+			sample_index = 0;
+			for (auto iit = train_in_beg, oit = train_dout_beg;
+				iit != train_in_end && oit != train_dout_end;
 				++iit, ++oit)
 			{
 				// forward propagation
 				size_t neur_index = 0;
 				for (auto& in : inputs) in->feed((*iit)[neur_index++]);
 			
-				// update test performance by averaging over errors
+				// backward propagation
+				std::transform(outputs.begin(), outputs.end(), oit->begin(), err.begin(),
+					[] (const OutputNeuronPtr& neur, const double& d_out) {
+						return d_out - neur->get_activation();
+						//return neur->get_activation() * (1 - neur->get_activation()) * (neur->get_activation() - d_out);
+				});
+				neur_index = 0;
+				for (auto& out : outputs) out->backpropagate(nullptr, err[neur_index++]);
+
+				// update training performance by averaging over errors
 				std::transform(outputs.begin(), outputs.end(), oit->begin(), mse_err.begin(),
 					[] (const OutputNeuronPtr& neur, const double& d_out) {
 						return std::pow(neur->get_activation() - d_out, 2.0); // MSE
 				});
-				test_perf[sample_index] = std::accumulate(mse_err.begin(), mse_err.end(), 0.0);
-				test_perf[sample_index] /= mse_err.size();
+				train_perf[sample_index] = std::accumulate(mse_err.begin(), mse_err.end(), 0.0);
+				train_perf[sample_index] /= mse_err.size();
 				++sample_index;
 			}
-			double avg_test_err = std::accumulate(test_perf.begin(), test_perf.end(), 0.0);
-			avg_test_err /= test_perf.size();
-			test_err_is_increasing.push_back( avg_test_err > prev_test_err );
-			if (test_err_is_increasing.size() > test_err_increase_threshold)
-				test_err_is_increasing.pop_front();
-			delta_test_err = prev_test_err - avg_test_err;
-			prev_test_err = avg_test_err;
-		}
-		
-		// iterate over all train samples, forward- & backpropagation
-		sample_index = 0;
-		for (auto iit = train_in_beg, oit = train_dout_beg;
-			iit != train_in_end && oit != train_dout_end;
-			++iit, ++oit)
-		{
-			// forward propagation
-			size_t neur_index = 0;
-			for (auto& in : inputs) in->feed((*iit)[neur_index++]);
-			
-			// backward propagation
-			std::transform(outputs.begin(), outputs.end(), oit->begin(), err.begin(),
-				[] (const OutputNeuronPtr& neur, const double& d_out) {
-					return d_out - neur->get_activation();
-					//return neur->get_activation() * (1 - neur->get_activation()) * (neur->get_activation() - d_out);
-			});
-			neur_index = 0;
-			for (auto& out : outputs) out->backpropagate(nullptr, err[neur_index++]);
+			double avg_train_err = std::accumulate(train_perf.begin(), train_perf.end(), 0.0);
+			avg_train_err /= train_perf.size();
+			delta_train_err = prev_train_err - avg_train_err;
+			prev_train_err = avg_train_err;
 
-			// update training performance by averaging over errors
-			std::transform(outputs.begin(), outputs.end(), oit->begin(), mse_err.begin(),
-				[] (const OutputNeuronPtr& neur, const double& d_out) {
-					return std::pow(neur->get_activation() - d_out, 2.0); // MSE
-			});
-			train_perf[sample_index] = std::accumulate(mse_err.begin(), mse_err.end(), 0.0);
-			train_perf[sample_index] /= mse_err.size();
-			++sample_index;
+			// log
+			/*log_stream << "Train error: " << prev_train_err << std::endl;
+			log_stream << "Train error delta: " << delta_train_err << std::endl;
+			if (test_in_beg != test_in_end)
+			{
+				log_stream << "Test error: " << prev_test_err << std::endl;
+				log_stream << "Test error delta: " << delta_test_err << std::endl;
+			}
+			log_stream << std::endl;*/
+			++epoch;
 		}
-		double avg_train_err = std::accumulate(train_perf.begin(), train_perf.end(), 0.0);
-		avg_train_err /= train_perf.size();
-		delta_train_err = prev_train_err - avg_train_err;
-		prev_train_err = avg_train_err;
-
-		// log
 		log_stream << "Train error: " << prev_train_err << std::endl;
-		log_stream << "Train error delta: " << delta_train_err << std::endl;
 		if (test_in_beg != test_in_end)
-		{
 			log_stream << "Test error: " << prev_test_err << std::endl;
-			log_stream << "Test error delta: " << delta_test_err << std::endl;
-		}
-		log_stream << std::endl;
-		++epoch;
+		++nrestart;
 	}
 }
 
@@ -314,6 +326,25 @@ void NeuronNetwork::test(istream& input_stream, ostream& output_stream, string d
 
 	// write output
 	for (auto& out : outputs) output_stream << out->get_activation() << delimiter;
+}
+
+/**
+ * Randomize a new value for all weights (including the bias) in the range of [Neuron::def_lower_bound, Neuron::def_upper_bound) for the whole network.
+ */
+void NeuronNetwork::reset_weights()
+{
+	for (auto& neur : neurons)
+		neur->reset_weights();
+}
+
+void NeuronNetwork::NNSettings::restart_training_if_stuck(bool do_restart, double restart_threshold_, size_t max_nrestart_)
+{
+	if (restart_threshold < 0)
+		throw std::exception("Invalid restart_threshold value!");
+
+	restart_if_high_error = do_restart;
+	restart_threshold = restart_threshold_;
+	max_nrestart = max_nrestart_;
 }
 
 template <typename order_iterator, typename value_iterator>

@@ -14,16 +14,19 @@ namespace NNlight {
 
 double Neuron::def_learning_rate = 0.1;
 double Neuron::def_regularization = 0.1;
+double Neuron::def_weight_lower_bound = -1.0;
+double Neuron::def_weight_upper_bound = 1.0;
 
 /**
  * Creates a neuron instance with the given learning rate.
  * @param learning_rate_
  */
+
 Neuron::Neuron(double learning_rate_, double regularization_)
 	: learning_rate(learning_rate_), regularization(regularization_), activation(0.0)
 {
 	// rand biasweight
-	std::uniform_real_distribution<double> distr(-.5, .5);
+	std::uniform_real_distribution<double> distr(def_weight_lower_bound, def_weight_upper_bound);
 	std::random_device rand_dev;
 	biasweight = distr(rand_dev);
 }
@@ -81,7 +84,6 @@ void Neuron::backpropagate(NeuronPtr from, double err)
 			[] (double acc, const std::pair<NeuronPtr, double>& err) {
 				return acc + err.second; // already multiplied by output weight
 		});
-		//delta *= activation * (1.0 - activation); // =gradient; multiplied by sigmoid derivate of activation
 
 		// adjust bias & input weights
 		biasweight += learning_rate * delta;
@@ -101,6 +103,23 @@ void Neuron::backpropagate(NeuronPtr from, double err)
 }
 
 /**
+ * Randomize a new value for all weights (including the bias) in the range of [lower_bound, upper_bound).
+ * @param lower_bound
+ * @param upper_bound
+ */
+void Neuron::reset_weights(double lower_bound, double upper_bound)
+{
+	if (upper_bound <= lower_bound)
+		throw std::exception("Upper bound must be greater than lower bound!");
+	
+	std::uniform_real_distribution<double> distr(lower_bound, upper_bound);
+	std::random_device rand_dev;
+	biasweight = distr(rand_dev);
+	for (auto& in : input_weights)
+		in.second = distr(rand_dev);
+}
+
+/**
  * Connects the given 'neuro' neuron as an input of this neuron.
  * @param neuro
  */
@@ -109,7 +128,7 @@ void Neuron::connect_input(NeuronPtr& neuro)
 	if (input_weights.find(neuro) != input_weights.end())
 		throw std::exception("Neuron is already connected as input!");
 
-	std::uniform_real_distribution<double> distr(0.0, 2.0);
+	std::uniform_real_distribution<double> distr(def_weight_lower_bound, def_weight_upper_bound);
 	std::random_device rand_dev;
 	input_weights.insert(std::make_pair(neuro, distr(rand_dev)));
 }
@@ -124,6 +143,20 @@ void Neuron::connect_output(NeuronPtr& neuro)
 		throw std::exception("Neuron is already connected as output!");
 
 	outputs.insert(neuro);
+}
+
+/**
+ * Sets the lower and upper bounds of randomized initial weight values.
+ * @param lower_bound
+ * @param upper_bound
+ */
+void Neuron::set_initial_weight_bounds(double lower_bound, double upper_bound)
+{
+	if (upper_bound <= lower_bound)
+		throw std::exception("Upper bound must be greater than lower bound!");
+
+	def_weight_lower_bound = lower_bound;
+	def_weight_upper_bound = upper_bound;
 }
 
 }

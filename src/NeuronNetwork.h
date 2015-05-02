@@ -27,7 +27,26 @@ using std::string;
 namespace NNlight {
 
 class NeuronNetwork {
+
+	class NNSettings
+	{
+		friend NeuronNetwork;
+	public:
+		NNSettings() : restart_if_high_error(false), restart_threshold(0), max_nrestart(0) {} // TODO impl elsewhere
+		// TODO doc
+		void restart_training_if_stuck(bool do_restart, double restart_threshold_ = 0.1, size_t max_nrestart = 10);
+
+	private:
+		NNSettings& operator=(const NNSettings& _) {}
+		bool restart_if_high_error;
+		double restart_threshold;
+		size_t max_nrestart;
+		// TODO
+	};
+
 public: 
+
+	NNSettings settings;
 
     /**
      * Creates a network of neurons, initially without the neurons. Neurons can be added after creation.
@@ -114,6 +133,12 @@ public:
      * @param output_stream
      */
     void test(istream& input_stream, ostream& output_stream, string delimiter = " ");
+
+	/**
+	 * Randomize a new value for all weights (including the bias) in the range of [Neuron::def_lower_bound, Neuron::def_upper_bound) for the whole network.
+	 */
+	void reset_weights();
+
 private: 
     /**
      * Default value of the ratio of training samples to all the samples. 1-<this> means the test ratio.

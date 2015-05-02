@@ -10,6 +10,7 @@
 #include <memory>
 #include <random>
 #include <numeric>
+#include <array>
 
 using std::unordered_set;
 using std::unordered_map;
@@ -36,6 +37,21 @@ public:
 		to->connect_input(std::dynamic_pointer_cast<Neuron>(from));
 	}
 
+	template <size_t N, size_t M>
+	static void connect_layers(std::array<NeuronPtr, N>& layer_from, std::array<NeuronPtr, M>& layer_to)
+	{
+		for (auto& from : layer_from)
+			for (auto& to : layer_to)
+				connect(from, to);
+	}
+
+	/**
+	 * Sets the lower and upper bounds of randomized initial weight values.
+	 * @param lower_bound
+	 * @param upper_bound
+	 */
+	static void set_initial_weight_bounds(double lower_bound, double upper_bound);
+
     /**
      * Creates a neuron instance with the given learning rate.
      * @param learning_rate_
@@ -56,6 +72,13 @@ public:
      * @param err
      */
     virtual void backpropagate(NeuronPtr from, double err);
+
+	/**
+	 * Randomize a new value for all weights (including the bias) in the range of [lower_bound, upper_bound).
+	 * @param lower_bound
+	 * @param upper_bound
+	 */
+	void reset_weights(double lower_bound = def_weight_lower_bound, double upper_bound = def_weight_upper_bound);
 
 	/**
      * Default learning rate.
@@ -102,6 +125,15 @@ protected:
     double regularization;
 
 private:
+	/**
+     * Default value of weights initial lower bound.
+     */
+	static double def_weight_lower_bound;
+	/**
+     * Default value of weights initial upper bound.
+     */
+	static double def_weight_upper_bound;
+
 	/**
      * Connects the given 'neuro' neuron as an input of this neuron.
      * @param neuro
