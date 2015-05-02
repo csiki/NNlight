@@ -11,6 +11,8 @@
 #include <random>
 #include <numeric>
 #include <array>
+#include <cmath>
+#include "ActivationOutOfBoundsException.h"
 
 using std::unordered_set;
 using std::unordered_map;
@@ -74,11 +76,11 @@ public:
     virtual void backpropagate(NeuronPtr from, double err);
 
 	/**
-	 * Randomize a new value for all weights (including the bias) in the range of [lower_bound, upper_bound).
+	 * Randomize a new value for all weights (including the bias) in the range of [lower_bound, upper_bound). Also clears inputs, and errors.
 	 * @param lower_bound
 	 * @param upper_bound
 	 */
-	void reset_weights(double lower_bound = def_weight_lower_bound, double upper_bound = def_weight_upper_bound);
+	void reset(double lower_bound = def_weight_lower_bound, double upper_bound = def_weight_upper_bound);
 
 	/**
      * Default learning rate.

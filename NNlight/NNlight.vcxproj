@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\ActivationOutOfBoundsException.h" />
     <ClInclude Include="..\src\InputNeuron.h" />
     <ClInclude Include="..\src\Neuron.h" />
     <ClInclude Include="..\src\NeuronLayer.h" />
@@ -18,6 +19,7 @@
     <ClInclude Include="..\src\OutputNeuron.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\ActivationOutOfBoundsException.h.cpp" />
     <ClCompile Include="..\src\InputNeuron.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\Neuron.cpp" />

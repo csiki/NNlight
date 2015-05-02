@@ -3,6 +3,7 @@
  */
 
 #include "Neuron.h"
+#include <iostream> // TODO rm
 
 /**
  * Neuron implementation
@@ -13,7 +14,7 @@
 namespace NNlight {
 
 double Neuron::def_learning_rate = 0.1;
-double Neuron::def_regularization = 0.1;
+double Neuron::def_regularization = 0.5;
 double Neuron::def_weight_lower_bound = -1.0;
 double Neuron::def_weight_upper_bound = 1.0;
 
@@ -57,6 +58,9 @@ void Neuron::propagate(NeuronPtr from, double act)
 
 		// remove all inputs
 		inputs.clear();
+
+		if (_isnan(activation))
+			throw ActivationOutOfBoundsException();
 
 		// propage activation further
 		for (auto& out : outputs)
@@ -103,11 +107,11 @@ void Neuron::backpropagate(NeuronPtr from, double err)
 }
 
 /**
- * Randomize a new value for all weights (including the bias) in the range of [lower_bound, upper_bound).
+ * Randomize a new value for all weights (including the bias) in the range of [lower_bound, upper_bound). Also clears inputs, and errors.
  * @param lower_bound
  * @param upper_bound
  */
-void Neuron::reset_weights(double lower_bound, double upper_bound)
+void Neuron::reset(double lower_bound, double upper_bound)
 {
 	if (upper_bound <= lower_bound)
 		throw std::exception("Upper bound must be greater than lower bound!");
@@ -117,6 +121,9 @@ void Neuron::reset_weights(double lower_bound, double upper_bound)
 	biasweight = distr(rand_dev);
 	for (auto& in : input_weights)
 		in.second = distr(rand_dev);
+	inputs.clear();
+	errors.clear();
+	activation = 0;
 }
 
 /**

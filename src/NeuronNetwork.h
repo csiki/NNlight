@@ -16,6 +16,7 @@
 #include "Neuron.h"
 #include "OutputNeuron.h"
 #include "InputNeuron.h"
+#include "ActivationOutOfBoundsException.h"
 
 using std::vector;
 using std::istream;
@@ -28,19 +29,20 @@ namespace NNlight {
 
 class NeuronNetwork {
 
-	class NNSettings
+	class NNSettings // TODO doc
 	{
 		friend NeuronNetwork;
 	public:
-		NNSettings() : restart_if_high_error(false), restart_threshold(0), max_nrestart(0) {} // TODO impl elsewhere
-		// TODO doc
+		NNSettings();
 		void restart_training_if_stuck(bool do_restart, double restart_threshold_ = 0.1, size_t max_nrestart = 10);
+		void set_max_num_of_epochs(size_t max_nepoch_);
 
 	private:
 		NNSettings& operator=(const NNSettings& _) {}
 		bool restart_if_high_error;
 		double restart_threshold;
 		size_t max_nrestart;
+		size_t max_nepoch;
 		// TODO
 	};
 
@@ -96,7 +98,7 @@ public:
      * @param log_stream
      * @param train_ratio
      */
-    void train(vector<vector<double>> input, vector<vector<double>> desired_output, ostream& log_stream, double train_ratio, size_t max_nepoch = def_max_epoch);
+    void train(vector<vector<double>> input, vector<vector<double>> desired_output, ostream& log_stream, double train_ratio, bool batch_mode = false);
     
     /**
      * Force the interconnected neurons to learn in a supervised way by the given input and desired output. Use this overload if both the input and desired output values are contained in a stream (file, console, etc.). 
@@ -104,7 +106,7 @@ public:
      * @param log_stream
      * @param train_ratio
      */
-    void train(istream& train_stream, ostream& log_stream, double train_ratio, size_t max_nepoch = def_max_epoch);
+    void train(istream& train_stream, ostream& log_stream, double train_ratio, bool batch_mode = false);
     
     /**
      * Activates the input neurons of the network with the given input and reads the output of the output neurons. Use this overload if the input is already put in a vector and the output is expected in a vector. The output vector is filled with as many elements as the number of output neurons in the network.
@@ -135,9 +137,9 @@ public:
     void test(istream& input_stream, ostream& output_stream, string delimiter = " ");
 
 	/**
-	 * Randomize a new value for all weights (including the bias) in the range of [Neuron::def_lower_bound, Neuron::def_upper_bound) for the whole network.
+	 * Randomize a new value for all weights (including the bias) in the range of [Neuron::def_lower_bound, Neuron::def_upper_bound) for the whole network. Also clears Neuron::inputs and Neuron::errors.
 	 */
-	void reset_weights();
+	void reset();
 
 private: 
     /**

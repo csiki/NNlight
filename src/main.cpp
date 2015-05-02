@@ -9,7 +9,6 @@ using namespace std;
 using namespace NNlight;
 
 // TODO add parameter documentation
-// TODO add batch learning to NeuronNetwork::train (as bool parameter)
 // TODO add momentum
 // source: http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.27.7876&rep=rep1&type=pdf
 // TODO add rprop
@@ -21,6 +20,7 @@ int main(int argc, char* argv[])
 	auto in2 = make_neuron<InputNeuron>();
 	auto hidden1 = make_neuron<Neuron>();
 	auto hidden2 = make_neuron<Neuron>();
+	auto hidden3 = make_neuron<Neuron>();
 	auto out = make_neuron<OutputNeuron>();
 
 	/*// make connections the hard way
@@ -31,9 +31,9 @@ int main(int argc, char* argv[])
 	Neuron::connect(hidden1, out);
 	Neuron::connect(hidden2, out);*/
 
-	// make connections the easy way by connecting layers instead of individual neurons
+	// make connections the "easy" way by connecting layers instead of individual neurons
 	array<NeuronPtr, 2> input_layer = {in1, in2}; // use std::array to build layers
-	array<NeuronPtr, 2> hidden_layer = {hidden1, hidden2};
+	array<NeuronPtr, 3> hidden_layer = {hidden1, hidden2, hidden3};
 	array<NeuronPtr, 1> output_layer = {out};
 	Neuron::connect_layers(input_layer, hidden_layer);
 	Neuron::connect_layers(hidden_layer, output_layer);
@@ -44,6 +44,7 @@ int main(int argc, char* argv[])
 	network.add_neuron(in2);
 	network.add_neuron(hidden1);
 	network.add_neuron(hidden2);
+	network.add_neuron(hidden3);
 	network.add_neuron(out);
 
 	// train network
@@ -51,6 +52,7 @@ int main(int argc, char* argv[])
 	network.settings.restart_training_if_stuck(true);
 	network.train(xor_file, cout, 1);
 
+	// test network
 	while (!cin.eof())
 	{
 		network.test(cin, cout);

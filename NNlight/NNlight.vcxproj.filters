@@ -30,6 +30,9 @@
     <ClInclude Include="..\src\NeuronLayer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\ActivationOutOfBoundsException.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\InputNeuron.cpp">
@@ -48,6 +51,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\NeuronLayer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ActivationOutOfBoundsException.h.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
