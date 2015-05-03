@@ -4,7 +4,7 @@ An easily integrable multilayer perceptron library. Mainly for educational propo
 
 Uses gradient-descent backpropagation learning method with various settings.
 
-# Simple XOR example #
+# Simple XOR example
 
 	using namespace std;
 	using namespace NNlight;
@@ -40,8 +40,11 @@ Uses gradient-descent backpropagation learning method with various settings.
 		cout << endl;
 	}
 
-# Simple XOR example with individual neurons #
+# Simple XOR example with individual neurons
 
+	using namespace std;
+	using namespace NNlight;
+	
 	// initiate neurons
 	auto in1 = make_neuron<InputNeuron>();
 	auto in2 = make_neuron<InputNeuron>();
@@ -51,6 +54,7 @@ Uses gradient-descent backpropagation learning method with various settings.
 	auto out = make_neuron<OutputNeuron>();
 
 	// make connections neuron-by-neuron
+	// it's also possible to put individual neurons in std::array structures and handle them as layers
 	Neuron::connect(in1, hidden1);
 	Neuron::connect(in1, hidden2);
 	Neuron::connect(in2, hidden1);
