@@ -15,9 +15,9 @@ Uses gradient-descent backpropagation learning method with various settings.
 	auto hidden_layer2 = make_layer<Neuron, 6>(); // 6 neurons in the hidden layer
 	auto output_layer = make_layer<OutputNeuron, 1>(); // 1 output (1 bit) - XOR has 1 output
 	
-	Neuron::connect_layers(input_layer, hidden_layer1);
+	Neuron::connect_layers(input_layer, hidden_layer1); // connects each neuron of input_layer to each neuron of hidden_layer1
 	Neuron::connect_layers(hidden_layer1, hidden_layer2);
-	Neuron::connect_layers(hidden_layer2, output_layer);
+	Neuron::connect_layers(hidden_layer2, output_layer); // [INPUT] -> input_layer -> hidden_layer1 -> hidden_layer2 -> output_layer -> [OUTPUT]
 	
 	// create network & add neuron layers to it
 	NeuronNetwork network;
