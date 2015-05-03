@@ -29,7 +29,7 @@ Uses gradient-descent backpropagation learning with various settings.
 	// load training data file & train the network
 	ifstream data_file("xor.dat");
 	network.settings.restart_training_if_stuck(true, 0.1, 5); // restart training 5 times if error of 0.1 or lower is not achieved
-	network.train(data_file, cout, 1, true);
+	network.train(data_file, cout, 1);
 	
 	// test network by hand
 	// write 2 bits to standard input then press enter (e.g. "0 1")
