@@ -27,7 +27,7 @@ Uses gradient-descent backpropagation learning with various settings.
 	network.add_layer(output_layer);
 	
 	// load training data file & train the network
-	ifstream data_file("xor.dat");
+	ifstream data_file("xor.dat"); // should contain epochs like 2 inputs followed by 1 desired output for every epoch (separated by white-space)
 	network.settings.restart_training_if_stuck(true, 0.1, 5); // restart training 5 times if error of 0.1 or lower is not achieved
 	network.train(data_file, cout, 1);
 	
