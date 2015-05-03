@@ -12,6 +12,7 @@
 #include <numeric>
 #include <array>
 #include <cmath>
+#include <functional>
 #include "ActivationOutOfBoundsException.h"
 
 using std::unordered_set;
@@ -22,6 +23,7 @@ namespace NNlight {
 
 class Neuron;
 typedef shared_ptr<Neuron> NeuronPtr;
+typedef std::function<double(double)> ActivationFun;
 
 class Neuron : public std::enable_shared_from_this<Neuron> {
 public:
@@ -39,8 +41,8 @@ public:
 		to->connect_input(std::dynamic_pointer_cast<Neuron>(from));
 	}
 
-	template <size_t N, size_t M>
-	static void connect_layers(std::array<NeuronPtr, N>& layer_from, std::array<NeuronPtr, M>& layer_to)
+	template <typename NeuronPtrTypeFrom, typename NeuronPtrTypeTo, size_t N, size_t M>
+	static void connect_layers(std::array<NeuronPtrTypeFrom, N>& layer_from, std::array<NeuronPtrTypeTo, M>& layer_to)
 	{
 		for (auto& from : layer_from)
 			for (auto& to : layer_to)
@@ -58,7 +60,7 @@ public:
      * Creates a neuron instance with the given learning rate.
      * @param learning_rate_
      */
-	Neuron(double learning_rate_ = def_learning_rate, double regularization_ = def_regularization);
+	Neuron(double learning_rate_ = def_learning_rate, double regularization_ = def_regularization); // TODO std::pair<ActivationFun, ActivationFun> act_fun_ = def_activation_fun);
 	virtual ~Neuron();
     
     /**
@@ -135,6 +137,10 @@ private:
      * Default value of weights initial upper bound.
      */
 	static double def_weight_upper_bound;
+	/**
+     * Default activation function - sigmoid logistic function.
+     */
+	static std::function<double(double)> def_activation_fun;
 
 	/**
      * Connects the given 'neuro' neuron as an input of this neuron.
@@ -151,11 +157,27 @@ private:
 
 /**
  * Creates a neuron and a (shared) pointer to it, so it can be connected to other neurons.
+ * @param learning_rate_
+ * @param regularization_ regularization parameter, propotional to the generalization of the network
  */
 template <typename NeuronType>
 std::shared_ptr<NeuronType> make_neuron(double learning_rate_ = Neuron::def_learning_rate, double regularization_ = Neuron::def_regularization)
 {
 	return std::make_shared<NeuronType>(learning_rate_, regularization_);
+}
+
+/**
+ * Creates a neuron layer and a (shared) pointer to each neuron in it, so they can be connected to other neurons.
+ * @param learning_rate_
+ * @param regularization_ regularization parameter, propotional to the generalization of the network
+ */
+template <typename NeuronType, size_t N>
+std::array<std::shared_ptr<NeuronType>, N> make_layer(double learning_rate_ = Neuron::def_learning_rate, double regularization_ = Neuron::def_regularization)
+{
+	std::array<std::shared_ptr<NeuronType>, N> layer;
+	for (auto& neur : layer)
+		neur = make_neuron<NeuronType>(learning_rate_, regularization_);
+	return layer;
 }
 
 }

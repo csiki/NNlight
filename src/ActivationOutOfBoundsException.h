@@ -10,7 +10,7 @@
 class ActivationOutOfBoundsException : public std::runtime_error
 {
 public:
-	ActivationOutOfBoundsException() : runtime_error("Activation has gone to - or + infinity!") {}
+	ActivationOutOfBoundsException() : runtime_error("Activation has gone to - or + infinity! Not enough neurons maybe?") {}
 };
 
 #endif

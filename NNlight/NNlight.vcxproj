@@ -14,7 +14,6 @@
     <ClInclude Include="..\src\ActivationOutOfBoundsException.h" />
     <ClInclude Include="..\src\InputNeuron.h" />
     <ClInclude Include="..\src\Neuron.h" />
-    <ClInclude Include="..\src\NeuronLayer.h" />
     <ClInclude Include="..\src\NeuronNetwork.h" />
     <ClInclude Include="..\src\OutputNeuron.h" />
   </ItemGroup>
@@ -23,7 +22,6 @@
     <ClCompile Include="..\src\InputNeuron.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\Neuron.cpp" />
-    <ClCompile Include="..\src\NeuronLayer.cpp" />
     <ClCompile Include="..\src\NeuronNetwork.cpp" />
     <ClCompile Include="..\src\OutputNeuron.cpp" />
   </ItemGroup>

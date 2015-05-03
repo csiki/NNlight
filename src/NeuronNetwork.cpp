@@ -13,7 +13,7 @@
 namespace NNlight {
 
 double NeuronNetwork::def_train_test_ratio = 0.8;
-size_t NeuronNetwork::def_max_epoch = 10000;
+size_t NeuronNetwork::def_max_epoch = 2000;
 double NeuronNetwork::err_eps = 1e-8;
 size_t NeuronNetwork::test_err_increase_threshold = 10;
 
@@ -110,26 +110,14 @@ void NeuronNetwork::train(vector<vector<double>> input, vector<vector<double>> d
 	double prev_test_err = std::numeric_limits<double>::max(); // averaged test error
 	double delta_train_err = std::numeric_limits<double>::max(); // accuracy change iteration by iteration
 	double delta_test_err = std::numeric_limits<double>::max();
-	// create and fill shuffle indices, so input and desired output can be shuffled at the same time
-	vector<size_t> shuffle_indices(static_cast<size_t>(input.size() * train_ratio));
-	std::iota(shuffle_indices.begin(), shuffle_indices.end(), 0);
-	// separate train and test, input and desired output vectors so shuffling them possible without extra vectors
-	auto train_in_beg = input.begin();
-	auto train_in_end = input.begin() + static_cast<size_t>(input.size() * train_ratio);
-	auto train_dout_beg = desired_output.begin();
-	auto train_dout_end = desired_output.begin() + static_cast<size_t>(desired_output.size() * train_ratio);
-	auto test_in_beg = train_in_end;
-	auto test_in_end = input.end();
-	auto test_dout_beg = train_dout_end;
-	auto test_dout_end = desired_output.end();
 	// create performance vectors to be able to average over errors of a training set
 	vector<double> train_perf(static_cast<size_t>(input.size() * train_ratio));
-	vector<double> test_perf(static_cast<size_t>(input.size() - input.size() * train_ratio));
+	vector<double> test_perf(static_cast<size_t>(input.size() - input.size() * train_ratio + 1));
 	// random stuff for shuffling
 	std::random_device rand_dev;
 	std::mt19937 gen(rand_dev());
 
-	if (std::distance(train_in_beg, train_in_end) == 0)
+	if (static_cast<size_t>(input.size() * train_ratio) == 0)
 		throw std::exception("Cannot train network, no training data provided - either train_ratio is too close to zero or the input is empty!");
 	
 	log_stream << "Training initiated ..." << std::endl;
@@ -137,9 +125,25 @@ void NeuronNetwork::train(vector<vector<double>> input, vector<vector<double>> d
 	while (nrestart == 0 || (settings.restart_if_high_error && settings.restart_threshold < prev_train_err && nrestart < settings.max_nrestart))
 	{
 		log_stream << "Training session #" << nrestart << std::endl;
+		// shuffle all inputs & desired outputs
+		vector<size_t> shuffle_indices(input.size());
+		std::iota(shuffle_indices.begin(), shuffle_indices.end(), 0);
+		std::shuffle(shuffle_indices.begin(), shuffle_indices.end(), gen);
+		reorder(shuffle_indices.begin(), shuffle_indices.end(), input.begin());
+		reorder(shuffle_indices.begin(), shuffle_indices.end(), desired_output.begin());
+		// separate train and test, input and desired output vectors so shuffling them possible without extra vectors
+		auto train_in_beg = input.begin();
+		auto train_in_end = input.begin() + static_cast<size_t>(input.size() * train_ratio);
+		auto train_dout_beg = desired_output.begin();
+		auto train_dout_end = desired_output.begin() + static_cast<size_t>(desired_output.size() * train_ratio);
+		auto test_in_beg = train_in_end;
+		auto test_in_end = input.end();
+		auto test_dout_beg = train_dout_end;
+		auto test_dout_end = desired_output.end();
+		// reset error values, test increse checker deque and neurons
 		prev_train_err = prev_test_err = delta_train_err = delta_test_err = std::numeric_limits<double>::max();
 		test_err_is_increasing.assign(test_err_increase_threshold, false);
-		reset(); // resets inputs, errors and weights of neurons
+		reset_neurons(); // resets inputs, errors and weights of neurons
 		size_t epoch = 0;
 		try {
 			while (epoch < settings.max_nepoch // has not reached max_nepoch
@@ -147,9 +151,12 @@ void NeuronNetwork::train(vector<vector<double>> input, vector<vector<double>> d
 				&& !std::all_of(test_err_is_increasing.begin(), test_err_is_increasing.end(), [] (bool inc) { return inc; } )) // no previous consecutive test error increase
 			{
 				// shuffle train inputs & desired outputs
-				std::shuffle(shuffle_indices.begin(), shuffle_indices.end(), gen);
-				reorder(shuffle_indices.begin(), shuffle_indices.end(), train_in_beg);
-				reorder(shuffle_indices.begin(), shuffle_indices.end(), train_dout_beg);
+				// create and fill shuffle indices, so input and desired output can be shuffled at the same time
+				vector<size_t> shuffle_train_indices(static_cast<size_t>(input.size() * train_ratio));
+				std::iota(shuffle_train_indices.begin(), shuffle_train_indices.end(), 0);
+				std::shuffle(shuffle_train_indices.begin(), shuffle_train_indices.end(), gen);
+				reorder(shuffle_train_indices.begin(), shuffle_train_indices.end(), train_in_beg);
+				reorder(shuffle_train_indices.begin(), shuffle_train_indices.end(), train_dout_beg);
 
 				// check performance on test data
 				size_t sample_index = 0;
@@ -231,15 +238,6 @@ void NeuronNetwork::train(vector<vector<double>> input, vector<vector<double>> d
 				delta_train_err = prev_train_err - avg_train_err;
 				prev_train_err = avg_train_err;
 
-				// log
-				/*log_stream << "Train error: " << prev_train_err << std::endl;
-				log_stream << "Train error delta: " << delta_train_err << std::endl;
-				if (test_in_beg != test_in_end)
-				{
-					log_stream << "Test error: " << prev_test_err << std::endl;
-					log_stream << "Test error delta: " << delta_test_err << std::endl;
-				}
-				log_stream << std::endl;*/
 				++epoch;
 			}
 			log_stream << "Train error: " << prev_train_err << std::endl;
@@ -249,10 +247,9 @@ void NeuronNetwork::train(vector<vector<double>> input, vector<vector<double>> d
 		catch (ActivationOutOfBoundsException& e)
 		{
 			log_stream << e.what() << std::endl;
-			reset();
+			reset_neurons();
 			log_stream << "Weigths are reset!" << std::endl;
 		}
-		catch (std::exception& e) { log_stream << "PARA: " << e.what() << std::endl; }
 		++nrestart;
 	}
 }
@@ -355,7 +352,7 @@ void NeuronNetwork::test(istream& input_stream, ostream& output_stream, string d
 /**
  * Randomize a new value for all weights (including the bias) in the range of [Neuron::def_lower_bound, Neuron::def_upper_bound) for the whole network. Also clears Neuron::inputs and Neuron::errors.
  */
-void NeuronNetwork::reset()
+void NeuronNetwork::reset_neurons()
 {
 	for (auto& neur : neurons)
 		neur->reset();

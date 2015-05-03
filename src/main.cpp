@@ -12,45 +12,31 @@ using namespace NNlight;
 // TODO add momentum
 // source: http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.27.7876&rep=rep1&type=pdf
 // TODO add rprop
+// TODO add adjustable activation function and derivative
+// TODO threadpool multithreading
 
 int main(int argc, char* argv[])
 {
-	// initiate neurons
-	auto in1 = make_neuron<InputNeuron>();
-	auto in2 = make_neuron<InputNeuron>();
-	auto hidden1 = make_neuron<Neuron>();
-	auto hidden2 = make_neuron<Neuron>();
-	auto hidden3 = make_neuron<Neuron>();
-	auto out = make_neuron<OutputNeuron>();
+	// initiate network
+	auto input_layer = make_layer<InputNeuron, 9>();
+	auto hidden_layer1 = make_layer<Neuron, 30>();
+	auto hidden_layer2 = make_layer<Neuron, 30>();
+	auto output_layer = make_layer<OutputNeuron, 1>();
 
-	/*// make connections the hard way
-	Neuron::connect(in1, hidden1);
-	Neuron::connect(in1, hidden2);
-	Neuron::connect(in2, hidden1);
-	Neuron::connect(in2, hidden2);
-	Neuron::connect(hidden1, out);
-	Neuron::connect(hidden2, out);*/
+	Neuron::connect_layers(input_layer, hidden_layer1);
+	Neuron::connect_layers(hidden_layer1, hidden_layer2);
+	Neuron::connect_layers(hidden_layer2, output_layer);
 
-	// make connections the "easy" way by connecting layers instead of individual neurons
-	array<NeuronPtr, 2> input_layer = {in1, in2}; // use std::array to build layers
-	array<NeuronPtr, 3> hidden_layer = {hidden1, hidden2, hidden3};
-	array<NeuronPtr, 1> output_layer = {out};
-	Neuron::connect_layers(input_layer, hidden_layer);
-	Neuron::connect_layers(hidden_layer, output_layer);
-	
-	// initiate network & add neurons
 	NeuronNetwork network;
-	network.add_neuron(in1);
-	network.add_neuron(in2);
-	network.add_neuron(hidden1);
-	network.add_neuron(hidden2);
-	network.add_neuron(hidden3);
-	network.add_neuron(out);
+	network.add_layer(input_layer);
+	network.add_layer(hidden_layer1);
+	network.add_layer(hidden_layer2);
+	network.add_layer(output_layer);
 
 	// train network
-	ifstream xor_file("xor.dat");
-	network.settings.restart_training_if_stuck(true);
-	network.train(xor_file, cout, 1);
+	ifstream data_file("tic-tac-toe_proc.dat");
+	network.settings.restart_training_if_stuck(true, 0.2, 10);
+	network.train(data_file, cout, 0.9);
 
 	// test network
 	while (!cin.eof())

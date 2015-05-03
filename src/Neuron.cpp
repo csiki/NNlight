@@ -13,8 +13,8 @@
 
 namespace NNlight {
 
-double Neuron::def_learning_rate = 0.1;
-double Neuron::def_regularization = 0.5;
+double Neuron::def_learning_rate = 0.01;
+double Neuron::def_regularization = 0.05;
 double Neuron::def_weight_lower_bound = -1.0;
 double Neuron::def_weight_upper_bound = 1.0;
 

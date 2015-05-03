@@ -13,6 +13,7 @@
 #include <iterator>
 #include <deque>
 #include <string>
+#include <array>
 #include "Neuron.h"
 #include "OutputNeuron.h"
 #include "InputNeuron.h"
@@ -90,6 +91,17 @@ public:
      * @param neuroptr
      */
     void add_neuron(NeuronPtr neuroptr);
+
+	/**
+     * Adds all the elements of the NeuronPtr array to the monitored neurons.
+     * @param layer
+     */
+	template <typename NeuronPtrType, size_t N>
+    void add_layer(const std::array<NeuronPtrType, N>& layer)
+	{
+		for (auto& neur : layer)
+			add_neuron(neur);
+	}
     
     /**
      * Force the interconnected neurons to learn in a supervised way by the given input and desired output. Use this overload if the input is already separated from the output.
@@ -139,7 +151,7 @@ public:
 	/**
 	 * Randomize a new value for all weights (including the bias) in the range of [Neuron::def_lower_bound, Neuron::def_upper_bound) for the whole network. Also clears Neuron::inputs and Neuron::errors.
 	 */
-	void reset();
+	void reset_neurons();
 
 private: 
     /**
