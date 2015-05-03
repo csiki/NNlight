@@ -10,10 +10,10 @@ Uses gradient-descent backpropagation learning with various settings.
 	using namespace NNlight;
 	
 	// create layers of neurons
-	auto input_layer = make_layer<InputNeuron, 2>(); // 2 inputs (2 bits)
+	auto input_layer = make_layer<InputNeuron, 2>(); // 2 inputs (2 bits) - XOR has 2 inputs
 	auto hidden_layer1 = make_layer<Neuron, 6>(); // 6 and
 	auto hidden_layer2 = make_layer<Neuron, 6>(); // 6 neurons in the hidden layer
-	auto output_layer = make_layer<OutputNeuron, 1>(); // 1 output (1 bit)
+	auto output_layer = make_layer<OutputNeuron, 1>(); // 1 output (1 bit) - XOR has 1 output
 	
 	Neuron::connect_layers(input_layer, hidden_layer1);
 	Neuron::connect_layers(hidden_layer1, hidden_layer2);
