@@ -39,3 +39,42 @@ Uses gradient-descent backpropagation learning method with various settings.
 		network.test(cin, cout);
 		cout << endl;
 	}
+
+# Simple XOR example with individual neurons #
+
+	// initiate neurons
+	auto in1 = make_neuron<InputNeuron>();
+	auto in2 = make_neuron<InputNeuron>();
+	auto hidden1 = make_neuron<Neuron>();
+	auto hidden2 = make_neuron<Neuron>();
+	auto hidden3 = make_neuron<Neuron>();
+	auto out = make_neuron<OutputNeuron>();
+
+	// make connections neuron-by-neuron
+	Neuron::connect(in1, hidden1);
+	Neuron::connect(in1, hidden2);
+	Neuron::connect(in2, hidden1);
+	Neuron::connect(in2, hidden2);
+	Neuron::connect(hidden1, out);
+	Neuron::connect(hidden2, out);
+	
+	// initiate network & add neurons
+	NeuronNetwork network;
+	network.add_neuron(in1);
+	network.add_neuron(in2);
+	network.add_neuron(hidden1);
+	network.add_neuron(hidden2);
+	network.add_neuron(hidden3);
+	network.add_neuron(out);
+
+	// train network
+	ifstream xor_file("xor.dat");
+	network.settings.restart_training_if_stuck(true, 0.1, 50);
+	network.train(xor_file, cout, 1);
+
+	// test network
+	while (!cin.eof())
+	{
+		network.test(cin, cout);
+		cout << endl;
+	}
