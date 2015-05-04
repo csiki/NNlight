@@ -96,6 +96,8 @@ First the 2 inputs than the desired output in each line. Samples do not need to 
 
 Just before training the network, call the `use_resilient_backpropagation()` function. Always train the network in batch mode ("learn by epoch") when applying rprop.
 
+	using namespace std;
+	using namespace NNlight;
 	...
 	// train network
 	ifstream data_file("xor.dat");
