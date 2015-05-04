@@ -39,12 +39,13 @@ double OutputNeuron::get_activation()
 void OutputNeuron::backpropagate(NeuronPtr from, double delta)
 {
 	// adjust bias & input weights
-	biasweight += learning_rate * delta;
+	if (use_rprop) biasweight += rprop(delta);
+	else biasweight -= learning_rate * delta;
 	for (auto& in : input_weights)
 	{
-		//auto grad = in.first->activation * delta + regularization * in.second;
-		auto grad = in.first->activation * delta * activation * (1 - activation) + regularization * in.second;
-		in.second += learning_rate * grad;
+		auto grad = in.first->activation * delta * activation * (1.0 - activation) - regularization * in.second;
+		if (use_rprop) in.second += rprop(in.first, grad);
+		else in.second -= learning_rate * grad;
 	}
 
 	// bacpropage error further

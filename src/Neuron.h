@@ -25,10 +25,32 @@ class Neuron;
 typedef shared_ptr<Neuron> NeuronPtr;
 typedef std::function<double(double)> ActivationFun;
 
-class Neuron : public std::enable_shared_from_this<Neuron> {
+class Neuron : public std::enable_shared_from_this<Neuron>
+{
 public:
+	// from http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.27.7876&rep=rep1&type=pdf
+	// TODO doc
+	class Rprop
+	{
+	public:
+		const static double def_delta0, def_deltamax, def_incr_factor, def_decr_factor;
+
+		Rprop() {}
+		Rprop(const unordered_map<NeuronPtr, double>& inputs, double delta0_ = def_delta0, double deltamax_ = def_deltamax, double incr_factor_ = def_incr_factor, double decr_factor_ = def_decr_factor);
+		double operator()(const NeuronPtr& weight_of_input, double grad);
+		double operator()(double bias_grad);
+		void reset();
+
+	private:
+		double delta0, deltamax;
+		double incr_factor, decr_factor;
+		double bias_prev_grad, bias_delta;
+		unordered_map<NeuronPtr, double> deltas;
+		unordered_map<NeuronPtr, double> prev_grads;
+	};
+
 	friend class OutputNeuron;
-    
+
 	/**
 	 * Connects two given neurons: from --> to.
 	 * @param from
@@ -41,6 +63,11 @@ public:
 		to->connect_input(std::dynamic_pointer_cast<Neuron>(from));
 	}
 
+	/**
+	 * Connects two given layers of neurons. Each neuron from layer_from is connected to each neuron of layer_to.
+	 * @param layer_from
+	 * @param layer_to
+	 */
 	template <typename NeuronPtrTypeFrom, typename NeuronPtrTypeTo, size_t N, size_t M>
 	static void connect_layers(std::array<NeuronPtrTypeFrom, N>& layer_from, std::array<NeuronPtrTypeTo, M>& layer_to)
 	{
@@ -85,6 +112,24 @@ public:
 	void reset(double lower_bound = def_weight_lower_bound, double upper_bound = def_weight_upper_bound);
 
 	/**
+	 * Activates the use of the default gradient-descent weight update method. Set by default.
+	 * @param learning_rate_
+	 * @param regularization_
+	 */
+	void use_default_backpropation(double learning_rate_, double regularization_);
+
+	/**
+	 * Activates the use of the advanced gradient-descent weight update method. Stick to the default parameters.
+	 * Call only after the input neurons are added.
+	 * @param delta0
+	 * @param deltamax
+	 * @param incr_factor
+	 * @param decr_factor
+	 */
+	void use_resilient_backpropagation(double delta0 = Rprop::def_delta0, double deltamax = Rprop::def_deltamax,
+		double incr_factor = Rprop::def_incr_factor, double decr_factor = Rprop::def_decr_factor);
+
+	/**
      * Default learning rate.
      */
     static double def_learning_rate;
@@ -127,6 +172,16 @@ protected:
      * Regularization term. Force weights to stay lower, serve generalization.
      */
     double regularization;
+
+	/**
+     * Predicate for the calculation of Rprop weight updates.
+     */
+	Rprop rprop;
+
+	/*
+	 * Indicates if the Rprop advanced adaptive weight update is in use.
+	 */
+	bool use_rprop;
 
 private:
 	/**

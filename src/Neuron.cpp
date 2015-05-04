@@ -18,13 +18,18 @@ double Neuron::def_regularization = 0.05;
 double Neuron::def_weight_lower_bound = -1.0;
 double Neuron::def_weight_upper_bound = 1.0;
 
+const double Neuron::Rprop::def_delta0 = 0.1;
+const double Neuron::Rprop::def_deltamax = 50.0;
+const double Neuron::Rprop::def_incr_factor = 1.2;
+const double Neuron::Rprop::def_decr_factor = 0.5;
+
 /**
  * Creates a neuron instance with the given learning rate.
  * @param learning_rate_
  */
 
 Neuron::Neuron(double learning_rate_, double regularization_)
-	: learning_rate(learning_rate_), regularization(regularization_), activation(0.0)
+	: learning_rate(learning_rate_), regularization(regularization_), activation(0.0), use_rprop(false)
 {
 	// rand biasweight
 	std::uniform_real_distribution<double> distr(def_weight_lower_bound, def_weight_upper_bound);
@@ -90,11 +95,13 @@ void Neuron::backpropagate(NeuronPtr from, double err)
 		});
 
 		// adjust bias & input weights
-		biasweight += learning_rate * delta;
+		if (use_rprop) biasweight += rprop(delta);
+		else biasweight -= learning_rate * delta;
 		for (auto& in : input_weights)
 		{
-			auto grad = in.first->activation * delta * activation * (1.0 - activation) + regularization * in.second;
-			in.second += learning_rate * grad;
+			auto grad = in.first->activation * delta * activation * (1.0 - activation) - regularization * in.second;
+			if (use_rprop) in.second += rprop(in.first, grad);
+			else in.second -= learning_rate * grad;
 		}
 
 		// remove all errors
@@ -124,6 +131,33 @@ void Neuron::reset(double lower_bound, double upper_bound)
 	inputs.clear();
 	errors.clear();
 	activation = 0;
+	rprop.reset();
+}
+
+/**
+ * Activates the use of the default gradient-descent weight update method. Set by default.
+ * @param learning_rate_
+ * @param regularization_
+ */
+void Neuron::use_default_backpropation(double learning_rate_, double regularization_)
+{
+	learning_rate = learning_rate_;
+	regularization = regularization_;
+	use_rprop = false;
+}
+
+/**
+ * Activates the use of the advanced gradient-descent weight update method. Stick to the default parameters.
+ * Call only after the input neurons are added.
+ * @param delta0
+ * @param deltamax
+ * @param incr_factor
+ * @param decr_factor
+ */
+void Neuron::use_resilient_backpropagation(double delta0, double deltamax, double incr_factor, double decr_factor)
+{
+	rprop = Rprop(input_weights, delta0, deltamax, incr_factor, decr_factor);
+	use_rprop = true;
 }
 
 /**
@@ -164,6 +198,70 @@ void Neuron::set_initial_weight_bounds(double lower_bound, double upper_bound)
 
 	def_weight_lower_bound = lower_bound;
 	def_weight_upper_bound = upper_bound;
+}
+
+Neuron::Rprop::Rprop(const unordered_map<NeuronPtr, double>& inputs, double delta0_, double deltamax_, double incr_factor_, double decr_factor_)
+	: delta0(delta0_), deltamax(deltamax_), incr_factor(incr_factor_), decr_factor(decr_factor_)
+{
+	prev_grads.reserve(inputs.size());
+	deltas.reserve(inputs.size());
+	for (const auto& in : inputs)
+	{
+		prev_grads[in.first] = 0;
+		deltas[in.first] = delta0;
+	}
+	bias_prev_grad = 0;
+	bias_delta = delta0;
+}
+
+double Neuron::Rprop::operator()(const NeuronPtr& weight_of_input, double grad)
+{
+	// calculate new delta value from previous
+	if (prev_grads[weight_of_input] * grad > 0)
+		deltas[weight_of_input] *= incr_factor;
+	else if (prev_grads[weight_of_input] * grad < 0)
+		deltas[weight_of_input] *= decr_factor;
+	prev_grads[weight_of_input] = grad;
+
+	if (deltas[weight_of_input] > deltamax)
+		deltas[weight_of_input] = deltamax;
+
+	// calculate weight update
+	if (grad > 0)
+		return -deltas[weight_of_input];
+	else if (grad < 0)
+		return deltas[weight_of_input];
+	return 0; // reached a platoo
+}
+
+double Neuron::Rprop::operator()(double bias_grad)
+{
+	// calculate new delta value from previous
+	if (bias_prev_grad * bias_grad > 0)
+		bias_delta *= incr_factor;
+	else if (bias_prev_grad * bias_grad < 0)
+		bias_delta *= decr_factor;
+	bias_prev_grad = bias_grad;
+
+	if (bias_delta > deltamax)
+		bias_delta = deltamax;
+
+	// calculate weight update
+	if (bias_grad > 0)
+		return -bias_delta;
+	else if (bias_grad < 0)
+		return bias_delta;
+	return 0; // reached a platoo
+}
+
+void Neuron::Rprop::reset()
+{
+	bias_prev_grad = 0;
+	bias_delta = delta0;
+	for (auto& prev_grad : prev_grads)
+		prev_grad.second = 0;
+	for (auto& delta : deltas)
+		delta.second = delta0;
 }
 
 }

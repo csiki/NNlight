@@ -28,8 +28,8 @@ using std::string;
 
 namespace NNlight {
 
-class NeuronNetwork {
-
+class NeuronNetwork
+{
 	class NNSettings // TODO doc
 	{
 		friend NeuronNetwork;
@@ -152,6 +152,25 @@ public:
 	 * Randomize a new value for all weights (including the bias) in the range of [Neuron::def_lower_bound, Neuron::def_upper_bound) for the whole network. Also clears Neuron::inputs and Neuron::errors.
 	 */
 	void reset_neurons();
+
+	/**
+	 * Activates the use of the default gradient-descent weight update method. Sets learning rate and regularization parameter for all neurons.
+	 * Call only after the neurons are added to the network.
+	 * @param learning_rate_
+	 * @param regularization_
+	 */
+	void use_default_backpropation(double learning_rate_ = Neuron::def_learning_rate, double regularization_ = Neuron::def_regularization);
+
+	/**
+	 * Activates the use of the advanced gradient-descent weight update method. Sets rprop parameters for all neurons.
+	 * Call only after the neurons are added to the network. Use batch ("learn by epoch") mode when applying Rprop.
+	 * @param delta0
+	 * @param deltamax
+	 * @param incr_factor
+	 * @param decr_factor
+	 */
+	void use_resilient_backpropagation(double delta0 = Neuron::Rprop::def_delta0, double deltamax = Neuron::Rprop::def_deltamax,
+		double incr_factor = Neuron::Rprop::def_incr_factor, double decr_factor = Neuron::Rprop::def_decr_factor);
 
 private: 
     /**

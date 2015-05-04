@@ -205,7 +205,7 @@ void NeuronNetwork::train(vector<vector<double>> input, vector<vector<double>> d
 					{
 						std::transform(outputs.begin(), outputs.end(), oit->begin(), err.begin(),
 							[] (const OutputNeuronPtr& neur, const double& d_out) {
-								return d_out - neur->get_activation();
+								return neur->get_activation() - d_out;
 						});
 						neur_index = 0;
 						for (auto& out : outputs) out->backpropagate(nullptr, err[neur_index++]);
@@ -215,7 +215,7 @@ void NeuronNetwork::train(vector<vector<double>> input, vector<vector<double>> d
 						auto outneurit = outputs.begin(); // output neurons
 						auto doutit = oit->begin(); // desired outputs
 						for (auto errit = err.begin(); errit != err.end(); ++errit)
-							*errit += *doutit - (*outneurit)->get_activation(); // accumulate errors
+							*errit += (*outneurit)->get_activation() - *doutit; // accumulate errors
 					}
 
 					// update training performance by averaging over errors
@@ -356,6 +356,33 @@ void NeuronNetwork::reset_neurons()
 {
 	for (auto& neur : neurons)
 		neur->reset();
+}
+
+/**
+ * Activates the use of the default gradient-descent weight update method. Sets learning rate and regularization parameter for all neurons.
+ * Call only after the neurons are added to the network.
+ * @param learning_rate_
+ * @param regularization_
+ */
+void NeuronNetwork::use_default_backpropation(double learning_rate_, double regularization_)
+{
+	for (auto& neur : neurons)
+		neur->use_default_backpropation(learning_rate_, regularization_);
+}
+
+/**
+ * Activates the use of the advanced gradient-descent weight update method. Sets rprop parameters for all neurons.
+ * Call only after the neurons are added to the network. Sets batch ("learn by epoch") mode.
+ * @param delta0
+ * @param deltamax
+ * @param incr_factor
+ * @param decr_factor
+ */
+void NeuronNetwork::use_resilient_backpropagation(double delta0, double deltamax, double incr_factor, double decr_factor)
+{
+	for (auto& neur : neurons)
+		neur->use_resilient_backpropagation(delta0, deltamax, incr_factor, decr_factor);
+	
 }
 
 NeuronNetwork::NNSettings::NNSettings()

@@ -9,7 +9,8 @@
 
 namespace NNlight {
 
-class InputNeuron: public Neuron {
+class InputNeuron: public Neuron
+{
 public: 
     
     /**

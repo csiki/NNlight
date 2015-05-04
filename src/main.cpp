@@ -18,9 +18,9 @@ using namespace NNlight;
 int main(int argc, char* argv[])
 {
 	// initiate network
-	auto input_layer = make_layer<InputNeuron, 9>();
-	auto hidden_layer1 = make_layer<Neuron, 30>();
-	auto hidden_layer2 = make_layer<Neuron, 30>();
+	auto input_layer = make_layer<InputNeuron, 2>();
+	auto hidden_layer1 = make_layer<Neuron, 5>();
+	auto hidden_layer2 = make_layer<Neuron, 5>();
 	auto output_layer = make_layer<OutputNeuron, 1>();
 
 	Neuron::connect_layers(input_layer, hidden_layer1);
@@ -34,9 +34,10 @@ int main(int argc, char* argv[])
 	network.add_layer(output_layer);
 
 	// train network
-	ifstream data_file("tic-tac-toe_proc.dat");
-	network.settings.restart_training_if_stuck(true, 0.2, 10);
-	network.train(data_file, cout, 0.9);
+	ifstream data_file("xor.dat");
+	network.use_resilient_backpropagation();
+	network.settings.restart_training_if_stuck(true, 0.1, 100);
+	network.train(data_file, cout, 1, true);
 
 	// test network
 	while (!cin.eof())
