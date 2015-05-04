@@ -82,3 +82,9 @@ Uses gradient-descent backpropagation learning method with various settings.
 		network.test(cin, cout);
 		cout << endl;
 	}
+
+# How to use resilient backpropagation (rprop)
+
+Just before training the network, call the `use_resilient_backpropagation()` function. Always train the network in batch mode ("learn by epoch") when applying rprop.
+
+Reference: (M. Riedmiller, “Advanced supervised learning in multi-layer perceptrons — From backpropagation to adaptive learning algorithms,” Computer Standards & Interfaces, vol. 16, no. 3, pp. 265–278, Jul. 1994.)[http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.27.7876&rep=rep1&type=pdf]
