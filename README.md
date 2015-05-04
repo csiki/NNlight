@@ -4,6 +4,15 @@ An easily integrable multilayer perceptron library. Mainly for educational propo
 
 Uses gradient-descent backpropagation learning method with various settings.
 
+# XOR data file to learn from
+
+First the 2 inputs than the desired output in each line. Samples do not need to be separated by lines.
+
+	0 0 0
+	0 1 1
+	1 0 1
+	1 1 0
+
 # Simple XOR example
 
 	using namespace std;
@@ -82,3 +91,19 @@ Uses gradient-descent backpropagation learning method with various settings.
 		network.test(cin, cout);
 		cout << endl;
 	}
+
+# How to use resilient backpropagation (rprop)
+
+Just before training the network, call the `use_resilient_backpropagation()` function. Always train the network in batch mode ("learn by epoch") when applying rprop.
+
+	using namespace std;
+	using namespace NNlight;
+	...
+	// train network
+	ifstream data_file("xor.dat");
+	network.settings.restart_training_if_stuck(true, 0.1, 100); // using rprop training is faster, though more restart may be needed
+	network.use_resilient_backpropagation(); // activates rprop mode for all neurons in the network; always call after all neurons are connected and included in the network
+	network.train(data_file, cout, 1, true); // set batch_mode to true
+	...
+
+Reference: [M. Riedmiller, “Advanced supervised learning in multi-layer perceptrons — From backpropagation to adaptive learning algorithms,” Computer Standards & Interfaces, vol. 16, no. 3, pp. 265–278, Jul. 1994.](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.27.7876&rep=rep1&type=pdf)
