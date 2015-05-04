@@ -101,7 +101,7 @@ Just before training the network, call the `use_resilient_backpropagation()` fun
 	...
 	// train network
 	ifstream data_file("xor.dat");
-	network.settings.restart_training_if_stuck(true, 0.1, 100); // using rprop training is faster, though more restart may needed
+	network.settings.restart_training_if_stuck(true, 0.1, 100); // using rprop training is faster, though more restart may be needed
 	network.use_resilient_backpropagation(); // activates rprop mode for all neurons in the network; always call after all neurons are connected and included in the network
 	network.train(data_file, cout, 1, true); // set batch_mode to true
 	...
